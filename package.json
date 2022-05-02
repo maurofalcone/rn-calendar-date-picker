@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "babel-jest": "^28.0.3"
+  }
+}
