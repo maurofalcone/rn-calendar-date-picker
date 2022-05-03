@@ -11,13 +11,12 @@ export const BasicDatePicker = () => {
   return (
     <View style={{ width: 250, height: 250 }}>
       <DatePicker
-        year={2022}
-        monthIndex={3}
-        onDayPress={setSelectedDate}
+        onDateChange={setSelectedDate}
         minDate={minDate}
         maxDate={maxDate}
         selectedDate={selectedDate}
         hideDiffMonthDays={false}
+        hideHeader
       />
     </View>
   );

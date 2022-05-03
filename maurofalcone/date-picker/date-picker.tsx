@@ -56,57 +56,89 @@ export type DatePickerProps = {
   hideDiffMonthDays?: boolean;
 };
 
-const getDaysInMonth = (year, monthIdx, minDate, maxDate) => {
-  const date = new Date(year, monthIdx, 1);
-  const days = [];
-  while (date.getMonth() === monthIdx) {
-    days.push(new Date(date));
-    date.setDate(date.getDate() + 1);
+const isDisabled = (date: Date, minDate?: Date, maxDate?: Date) => {
+  if (maxDate && !minDate) {
+    return date.getTime() > maxDate.getTime();
   }
-  const daysInCurrentMonth = days;
+  if (minDate && !maxDate) {
+    return date.getTime() < minDate.getTime();
+  }
+  if (maxDate && minDate) {
+    return (
+      date.getTime() > maxDate.getTime() || date.getTime() < minDate.getTime()
+    );
+  }
+  return false;
+};
+
+const getDaysInMonth = (
+  year: number,
+  monthIdx: number,
+  minDate?: Date,
+  maxDate?: Date
+): Record<
+  string,
+  {
+    date: Date;
+    disabled: boolean;
+    isSameMonth: boolean;
+    isToday: boolean;
+  }[]
+> => {
   const firstDayOfMonth = new Date(year, monthIdx, 1);
-
   const firstDayOfMonthDay = weekDays[firstDayOfMonth.getDay()];
+  const lastDayOfMonth = new Date(year, monthIdx + 1, 0);
+  const lastDayOfMonthDay = weekDays[lastDayOfMonth.getDay()];
+  const currentMonthDaysQty = new Date(year, monthIdx + 1, 0).getDate();
 
-  const previousDates = [];
+  const daysToLoop =
+    missingDates[firstDayOfMonthDay].pastDates +
+    currentMonthDaysQty +
+    missingDates[lastDayOfMonthDay].nextDates;
+
+  const dates: Record<
+    string,
+    {
+      date: Date;
+      disabled: boolean;
+      isSameMonth: boolean;
+      isToday: boolean;
+    }[]
+  > = {
+    Sun: [],
+    Mon: [],
+    Tue: [],
+    Wed: [],
+    Thu: [],
+    Fri: [],
+    Sat: [],
+  };
+  const date = new Date(year, monthIdx, 1);
+
   if (missingDates[firstDayOfMonthDay]) {
-    for (let i = 1; i < missingDates[firstDayOfMonthDay].pastDates + 1; i++) {
-      const x = new Date(year, monthIdx, 1);
-      x.setDate(x.getDate() - i);
-      previousDates.push(new Date(x));
+    date.setDate(
+      date.getDate() - missingDates[firstDayOfMonthDay].pastDates - 1
+    );
+    for (let i = 1; i <= daysToLoop; i++) {
+      const newDate = new Date(date.setDate(date.getDate() + 1));
+      const disabled = isDisabled(newDate, minDate, maxDate);
+      const isToday = newDate?.toDateString() === now.toDateString();
+      const isSameMonth = newDate?.getMonth() === monthIdx;
+      const obj: {
+        date: Date;
+        disabled: boolean;
+        isSameMonth: boolean;
+        isToday: boolean;
+      } = {
+        date: newDate,
+        disabled,
+        isToday,
+        isSameMonth,
+      };
+      dates[weekDays[obj.date.getDay()]].push(obj);
     }
   }
-
-  const lastDay = new Date(year, monthIdx + 1, 0);
-
-  const lastDayName = weekDays[lastDay.getDay()];
-  const futureDates = [];
-  if (missingDates[lastDayName]) {
-    for (let i = 1; i < missingDates[lastDayName].nextDates + 1; i++) {
-      const x = new Date(year, monthIdx + 1, 0);
-      x.setDate(x.getDate() + i);
-      futureDates.push(new Date(x));
-    }
-  }
-
-  const result = [...previousDates, ...daysInCurrentMonth, ...futureDates];
-  const mappedDates = result.reduce((acc, date) => {
-    const disabled = isDisabled(date, minDate, maxDate);
-    const isToday = date.toDateString() === now.toDateString();
-    const isSameMonth = date.getMonth() === monthIdx;
-    acc[weekDays[date.getDay()]]
-      ? acc[weekDays[date.getDay()]].push({
-          date,
-          disabled,
-          isToday,
-          isSameMonth,
-        })
-      : (acc[weekDays[date.getDay()]] = [
-          { date, disabled, isToday, isSameMonth },
-        ]);
-    return acc;
-  }, {});
-  return mappedDates;
+  return dates;
 };
 
 const getDayStyle = (isDisabled, isSelected, isToday, isSameMonth) => {
@@ -151,142 +183,176 @@ const getDayFontStyle = (isDisabled, isSelected, isToday, isSameMonth) => {
   };
 };
 
-const isDisabled = (date: Date, minDate: Date, maxDate: Date) => {
-  return (
-    date.getTime() > maxDate.getTime() || date.getTime() < minDate.getTime()
-  );
-};
-
 export const DatePicker = ({
-  monthIndex,
-  year,
   maxDate,
   minDate,
   selectedDate,
-  onDayPress,
+  onDateChange,
   hideDiffMonthDays = false,
+  hideHeader = false,
+}: {
+  maxDate?: Date;
+  minDate?: Date;
+  selectedDate: Date;
+  onDateChange: (date: Date) => void;
+  hideDiffMonthDays?: boolean;
+  hideHeader?: boolean;
 }) => {
-  const [mappedDatesByDayName, setMappedDatesByDayName] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [mappedDatesByDayName, setMappedDatesByDayName] = useState({
+    Sun: [],
+    Mon: [],
+    Tue: [],
+    Wed: [],
+    Thu: [],
+    Fri: [],
+    Sat: [],
+  });
 
   useEffect(() => {
-    setIsLoading(() => true);
-    InteractionManager.runAfterInteractions(() => {
-      const result = getDaysInMonth(year, monthIndex, minDate, maxDate);
+    if (selectedDate) {
+      const result = getDaysInMonth(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        minDate,
+        maxDate
+      );
       setMappedDatesByDayName(() => result);
-      setIsLoading(() => false);
-    });
-  }, [year, monthIndex, maxDate, minDate]);
-  if (isLoading) {
-    return (
-      <View
-        style={{
-          height: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <Text>Loading...</Text>
-      </View>
-    );
-  } else {
-    return (
-      <View
-        style={{
-          width: '100%',
-          height: '100%',
-        }}
-      >
+    }
+  }, [selectedDate, maxDate, minDate]);
+
+  return (
+    <View
+      style={{
+        width: '100%',
+        height: '100%',
+      }}
+    >
+      {!hideHeader && (
         <View
           style={{
-            display: 'flex',
+            height: '50px',
             flexDirection: 'row',
-            justifyContent: 'space-around',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: 10,
           }}
         >
-          {weekDays.map((wd) => (
+          <TouchableOpacity
+            onPress={() =>
+              onDateChange(
+                new Date(selectedDate.setMonth(selectedDate.getMonth() - 1))
+              )
+            }
+          >
+            <Text>{'<'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity>
+            <Text>
+              {selectedDate.toLocaleString('default', { month: 'long' })}{' '}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity>
+            <Text>{selectedDate.getFullYear()}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              onDateChange(
+                new Date(selectedDate.setMonth(selectedDate.getMonth() + 1))
+              )
+            }
+          >
+            <Text>{'>'}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      <View
+        style={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-around',
+        }}
+      >
+        {weekDays.map((wd) => (
+          <View
+            key={wd}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              flex: 1,
+            }}
+          >
             <View
-              key={wd}
               style={{
                 display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                flex: 1,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '10%',
               }}
             >
-              <View
-                style={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  height: '10%',
-                }}
-              >
-                <Text>{wd}</Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: 'column',
-                  justifyContent: 'space-around',
-                  height: '90%',
-                }}
-              >
-                {mappedDatesByDayName[wd]?.map(
-                  ({ date, disabled, isSameMonth, isToday }) => {
-                    const isSelected =
-                      !isDisabled(selectedDate, minDate, maxDate) &&
-                      selectedDate.toDateString() === date.toDateString();
-                    return (
-                      <View
-                        key={date}
-                        style={getDayContainerStyle(isSelected, isSameMonth)}
-                      >
-                        <TouchableOpacity
-                          style={
-                            getDayStyle(
-                              disabled,
-                              isSelected,
-                              isToday,
-                              isSameMonth
-                            ) as any
-                          }
-                          onPress={() => !disabled && onDayPress(date)}
-                          disabled={disabled || !isSameMonth}
-                          hitSlop={{
-                            top: 10,
-                            left: 8,
-                            right: 8,
-                            bottom: 10,
-                          }}
-                        >
-                          <Text
-                            style={getDayFontStyle(
-                              disabled,
-                              isSelected,
-                              isToday,
-                              isSameMonth
-                            )}
-                          >
-                            {!hideDiffMonthDays
-                              ? date.getDate()
-                              : isSameMonth
-                              ? date.getDate()
-                              : ''}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  }
-                )}
-              </View>
+              <Text>{wd}</Text>
             </View>
-          ))}
-        </View>
+            <View
+              style={{
+                flexDirection: 'column',
+                justifyContent: 'space-around',
+                height: '90%',
+              }}
+            >
+              {mappedDatesByDayName[wd]?.map(
+                ({ date, disabled, isSameMonth, isToday }) => {
+                  const isSelected =
+                    !isDisabled(selectedDate, minDate, maxDate) &&
+                    selectedDate.toDateString() === date.toDateString();
+                  return (
+                    <View
+                      key={date}
+                      style={getDayContainerStyle(isSelected, isSameMonth)}
+                    >
+                      <TouchableOpacity
+                        style={
+                          getDayStyle(
+                            disabled,
+                            isSelected,
+                            isToday,
+                            isSameMonth
+                          ) as any
+                        }
+                        onPress={() => !disabled && onDateChange(date)}
+                        disabled={disabled || !isSameMonth}
+                        hitSlop={{
+                          top: 10,
+                          left: 8,
+                          right: 8,
+                          bottom: 10,
+                        }}
+                      >
+                        <Text
+                          style={getDayFontStyle(
+                            disabled,
+                            isSelected,
+                            isToday,
+                            isSameMonth
+                          )}
+                        >
+                          {!hideDiffMonthDays
+                            ? date.getDate()
+                            : isSameMonth
+                            ? date.getDate()
+                            : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
+              )}
+            </View>
+          </View>
+        ))}
       </View>
-    );
-  }
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
