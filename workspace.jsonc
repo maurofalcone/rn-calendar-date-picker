@@ -40,17 +40,19 @@
     "policy": {
       "dependencies": {
         "@teambit/eslint-config-bit-react": "~0.0.367",
+        "@teambit/react-native": "0.0.725",
         "@typescript-eslint/eslint-plugin": "4.29.3",
+        "babel-jest": "^28.0.3",
         "eslint-import-resolver-node": "0.3.6",
         "eslint-plugin-import": "2.22.1",
         "eslint-plugin-jest": "24.4.0",
         "eslint-plugin-jsx-a11y": "6.4.1",
         "eslint-plugin-mdx": "1.15.0",
-        "eslint-plugin-react": "7.25.1",
-        "@testing-library/react": "12.0.0"
+        "eslint-plugin-react": "7.25.1"
       },
       "peerDependencies": {
         "@testing-library/react": "12.0.0",
+        "@testing-library/react-native": "9.1.0",
         "react": "17.0.2",
         "react-dom": "17.0.2",
         "react-native": "0.66.1"
@@ -64,8 +66,14 @@
    * wrap the rule with curly brackets (e.g. `"{ui/*}": {}`)
    * see https://bit.dev/docs/workspace/variants for more info.
    **/
-  "teambit.workspace/variants": {},
+  "teambit.workspace/variants": {
+    "maurofalcone/date-picker": {
+      "maurofalcone/extensions/custom-react-native": {}
+    }
+  },
   "teambit.component/issues": {
-    "ignoreIssues": ["MissingPackagesDependenciesOnFs"]
+    "ignoreIssues": [
+      "MissingPackagesDependenciesOnFs"
+    ]
   }
 }

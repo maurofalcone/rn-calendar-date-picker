@@ -4,7 +4,9 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  InteractionManager,
+  ViewStyle,
+  StyleProp,
+  TextStyle,
 } from 'react-native';
 
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -44,16 +46,33 @@ const now = new Date();
 
 export type DatePickerProps = {
   /**
-   * a text to be rendered in the component.
+   * dates after maxDate will be disabled.
    */
-  text: string;
-  monthIndex: number;
-  year: number;
-  maxDate: Date;
-  minDate: Date;
+  maxDate?: Date;
+  /**
+   * dates before minDate will be disabled.
+   */
+  minDate?: Date;
+  /**
+   * The selected date.
+   */
   selectedDate: Date;
-  onDayPress: (selectedDate: Date) => void;
+  /**
+   * A function to set the selected date value. Receives the new date as parameter.
+   */
+  onDateChange: (selectedDate: Date) => void;
+  /**
+   * Set "hideDiffMonthDays" to true if you want to hide the previous and next days of the current month.
+   */
   hideDiffMonthDays?: boolean;
+  /**
+   * Set "hideHeader" to true if you want to hide the default header component.
+   */
+  hideHeader?: boolean;
+  /**
+   * Overrides day name style.
+   */
+  weekDayStyle?: StyleProp<TextStyle>;
 };
 
 const isDisabled = (date: Date, minDate?: Date, maxDate?: Date) => {
@@ -77,7 +96,7 @@ const getDaysInMonth = (
   minDate?: Date,
   maxDate?: Date
 ): Record<
-  string,
+  'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat',
   {
     date: Date;
     disabled: boolean;
@@ -141,7 +160,7 @@ const getDaysInMonth = (
   return dates;
 };
 
-const getDayStyle = (isDisabled, isSelected, isToday, isSameMonth) => {
+const getDayStyle = (isDisabled, isSelected, isToday, _isSameMonth) => {
   return {
     width: 30,
     height: 30,
@@ -149,18 +168,20 @@ const getDayStyle = (isDisabled, isSelected, isToday, isSameMonth) => {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: isSelected ? 'green' : 'transparent',
-    borderColor: isToday ? (isDisabled ? 'gray' : 'green') : 'transparent',
+    backgroundColor: isSelected ? '#f50057' : 'transparent',
+    borderColor: isToday ? (isDisabled ? 'gray' : '#f50057') : 'transparent',
     borderRadius: 100,
     borderWidth: 1,
   };
 };
 
-const getDayContainerStyle = (isSelected, isSameMonth) => {
+const getDayContainerStyle = (hideDiffMonthDays, isSameMonth) => {
   return {
     width: '100%',
-    backgroundColor: !isSameMonth ? '#808080' : 'transparent',
-    // borderRadius: !isSameMonth ? 0 : 100,
+    backgroundColor:
+      !isSameMonth && !hideDiffMonthDays ? '#808080' : 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
   };
 };
 
@@ -173,7 +194,7 @@ const getDayFontStyle = (isDisabled, isSelected, isToday, isSameMonth) => {
     color = 'gray';
   }
   if (!isSelected && !isDisabled && isToday && isSameMonth) {
-    color = 'green';
+    color = '#f50057';
   }
   if (!isSameMonth) {
     color = '#AAAAAA';
@@ -186,19 +207,23 @@ const getDayFontStyle = (isDisabled, isSelected, isToday, isSameMonth) => {
 export const DatePicker = ({
   maxDate,
   minDate,
-  selectedDate,
+  selectedDate = new Date(),
   onDateChange,
   hideDiffMonthDays = false,
   hideHeader = false,
-}: {
-  maxDate?: Date;
-  minDate?: Date;
-  selectedDate: Date;
-  onDateChange: (date: Date) => void;
-  hideDiffMonthDays?: boolean;
-  hideHeader?: boolean;
-}) => {
-  const [mappedDatesByDayName, setMappedDatesByDayName] = useState({
+  weekDayStyle = {},
+}: DatePickerProps) => {
+  const [mappedDatesByDayName, setMappedDatesByDayName] = useState<
+    Record<
+      'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat',
+      {
+        date: Date;
+        disabled: boolean;
+        isSameMonth: boolean;
+        isToday: boolean;
+      }[]
+    >
+  >({
     Sun: [],
     Mon: [],
     Tue: [],
@@ -270,6 +295,7 @@ export const DatePicker = ({
           display: 'flex',
           flexDirection: 'row',
           justifyContent: 'space-around',
+          flex: 1,
         }}
       >
         {weekDays.map((wd) => (
@@ -291,13 +317,14 @@ export const DatePicker = ({
                 height: '10%',
               }}
             >
-              <Text>{wd}</Text>
+              <Text style={weekDayStyle}>{wd}</Text>
             </View>
             <View
               style={{
                 flexDirection: 'column',
                 justifyContent: 'space-around',
                 height: '90%',
+                paddingTop: 15,
               }}
             >
               {mappedDatesByDayName[wd]?.map(
@@ -308,7 +335,12 @@ export const DatePicker = ({
                   return (
                     <View
                       key={date}
-                      style={getDayContainerStyle(isSelected, isSameMonth)}
+                      style={
+                        getDayContainerStyle(
+                          hideDiffMonthDays,
+                          isSameMonth
+                        ) as StyleProp<ViewStyle>
+                      }
                     >
                       <TouchableOpacity
                         style={

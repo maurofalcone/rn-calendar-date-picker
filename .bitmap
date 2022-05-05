@@ -10,20 +10,14 @@
 
 {
     "date-picker": {
-        "scope": "",
-        "version": "",
+        "scope": "maurofalcone.calendar",
+        "version": "1.0.0",
         "mainFile": "index.ts",
-        "rootDir": "maurofalcone/date-picker",
-        "config": {
-            "maurofalcone/extensions/custom-react-native": {},
-            "teambit.envs/envs": {
-                "env": "maurofalcone/extensions/custom-react-native"
-            }
-        }
+        "rootDir": "maurofalcone/date-picker"
     },
     "extensions/custom-react-native": {
-        "scope": "",
-        "version": "",
+        "scope": "maurofalcone.calendar",
+        "version": "1.0.0",
         "mainFile": "index.ts",
         "rootDir": "maurofalcone/extensions/custom-react-native"
     },

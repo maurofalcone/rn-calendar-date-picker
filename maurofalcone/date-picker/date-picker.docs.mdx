@@ -1,24 +1,42 @@
 ---
 description: 'A Date Picker component.'
-labels: ['react-native', 'calendar', 'day-picker']
+labels: ['react-native', 'calendar', 'date-picker']
 ---
 
 import { DatePicker } from './date-picker';
 
 ## React Native Component for rendering text
 
-A react-native lightweight date picker
+A simple, customizable and lightweight date picker for react-native.
 
 ### Component usage
 
-```js
-<DatePicker text="hello from DatePicker" />
+```jsx
+const today = new Date()
+const [selectedDate, setSelectedDate] = useState(today)
+const minDate = new Date(new Date().setDate(today - 50))
+const maxDate = new Date(new Date().setDate(today + 10))
+<DatePicker
+  onDateChange={(date) => setSelectedDate(date)}
+  minDate={minDate}
+  minDate={maxDate}
+  selectedDate={today}
+  hideDiffMonthDays={false}
+  hideHeader
+/>
 ```
 
 ### Using props to customize the text
 
 Modify the text to see it change live:
 
-```js live
-<DatePicker text="hello from DatePicker" />
+```jsx live
+<DatePicker
+  onDateChange={(selectedDate) => console.log('Clicked')}
+  minDate={new Date(new Date().setDate(new Date() + 10))}
+  minDate={new Date(new Date().setDate(new Date() + 10))}
+  selectedDate={new Date()}
+  hideDiffMonthDays={false}
+  hideHeader={false}
+/>
 ```
